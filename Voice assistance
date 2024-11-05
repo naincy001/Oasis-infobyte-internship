@@ -1,0 +1,76 @@
+import speech_recognition as sr
+import pyttsx3
+from datetime import datetime
+import requests
+
+# Initialize the recognizer and the TTS engine
+recognizer = sr.Recognizer()
+engine = pyttsx3.init()
+
+def speak(text):
+    engine.say(text)
+    engine.runAndWait()
+
+def listen():
+    with sr.Microphone() as source:
+        print("Listening...")
+        audio = recognizer.listen(source)
+        try:
+            command = recognizer.recognize_google(audio)
+            print(f"You said: {command}")
+            return command.lower()
+        except sr.UnknownValueError:
+            speak("Sorry, I did not understand that.")
+            return ""
+        except sr.RequestError:
+            speak("Could not request results; check your network connection.")
+            return ""
+
+def tell_time():
+    now = datetime.now()
+    current_time = now.strftime("%H:%M:%S")
+    speak(f"The current time is {current_time}")
+
+def tell_date():
+    now = datetime.now()
+    current_date = now.strftime("%Y-%m-%d")
+    speak(f"Today's date is {current_date}")
+
+def search_web(query):
+    try:
+        response = requests.get(f"https://api.duckduckgo.com/?q={query}&format=json")
+        data = response.json()
+        if 'AbstractText' in data and data['AbstractText']:
+            speak(data['AbstractText'])
+        else:
+            speak("I couldn't find any relevant information.")
+    except Exception as e:
+        speak("There was an error trying to search the web.")
+
+def handle_command(command):
+    if "hello" in command:
+        speak("Hello! How can I assist you today?")
+    elif "time" in command:
+        tell_time()
+    elif "date" in command:
+        tell_date()
+    elif "search" in command:
+        query = command.replace("search", "").strip()
+        if query:
+            search_web(query)
+        else:
+            speak("What would you like to search for?")
+    else:
+        speak("I'm not sure how to help with that.")
+
+def main():
+    while True:
+        command = listen()
+        if command:
+            handle_command(command)
+        if "exit" in command:
+            speak("Goodbye!")
+            break
+
+if _name_ == "_main_":
+    main()
